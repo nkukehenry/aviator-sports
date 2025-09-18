@@ -531,11 +531,11 @@ class SimulationEngine:
             # Generate goal with frequency control
             if np.random.random() < 0.5:  # 50% chance of goal when attacking (fast events)
                 if self._can_generate_goal_with_limits(match):
-                if home_attacking:
-                    match.home_score += 1
-                else:
-                    match.away_score += 1
-                
+                    if home_attacking:
+                        match.home_score += 1
+                    else:
+                        match.away_score += 1
+                    
                     # Track this goal for frequency control
                     self._track_goal(match.id)
                     
