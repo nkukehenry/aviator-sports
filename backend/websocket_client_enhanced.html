@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VFL Virtual Soccer - Enhanced WebSocket Client</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.8;
+            font-size: 1.1em;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .connection-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .input-group label {
+            font-weight: 600;
+            min-width: 100px;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #212529;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .playoffs-section {
+            margin-top: 30px;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+        
+        .playoffs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .playoff-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .playoff-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .playoff-card.live {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #f8fff9 0%, #e8f5e8 100%);
+        }
+        
+        .playoff-card.scheduled {
+            border-color: #ffc107;
+            background: linear-gradient(135deg, #fffdf7 0%, #fff8e1 100%);
+        }
+        
+        .playoff-card.finished {
+            border-color: #6c757d;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        .playoff-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .playoff-id {
+            font-weight: 700;
+            color: #495057;
+            font-size: 1.1em;
+        }
+        
+        .playoff-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-live {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status-scheduled {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .status-finished {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .playoff-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .stat {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .matches-list {
+            margin-top: 15px;
+        }
+        
+        .match-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        
+        .match-teams {
+            font-weight: 600;
+        }
+        
+        .match-score {
+            font-weight: 700;
+            color: #007bff;
+            font-size: 1.1em;
+        }
+        
+        .match-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .match-live {
+            background: #28a745;
+            color: white;
+        }
+        
+        .match-scheduled {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .match-finished {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .playoff-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+        
+        .live-matches-section {
+            margin-top: 30px;
+        }
+        
+        .live-matches-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .live-match-card {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .live-match-card h4 {
+            margin: 0 0 15px 0;
+            font-size: 1.2em;
+        }
+        
+        .live-match-score {
+            font-size: 2em;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        .live-match-minute {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .client-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .info-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .info-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #007bff;
+        }
+        
+        .info-label {
+            font-size: 0.9em;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .messages {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .message {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .message.warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .timestamp {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+        
+        .auto-update-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(40,167,69,0.3);
+            z-index: 1000;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="auto-update-indicator" id="autoUpdateIndicator">
+        🔄 Auto-Updating
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>⚽ VFL Virtual Soccer</h1>
+            <p>Enhanced WebSocket Client with Real-time Updates</p>
+        </div>
+        
+        <div class="content">
+            <!-- Connection Panel -->
+            <div class="connection-panel">
+                <h3>🔌 Connection</h3>
+                <div class="input-group">
+                    <label for="clientId">Client ID:</label>
+                    <input type="text" id="clientId" placeholder="Enter client ID (e.g., client_premier)" value="client_premier">
+                </div>
+                <div class="input-group">
+                    <button class="btn btn-primary" id="connectBtn" onclick="connect()">Connect</button>
+                    <button class="btn btn-danger" id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+                    <button class="btn btn-warning" id="refreshBtn" onclick="refreshData()" disabled>Refresh Data</button>
+                </div>
+                <div class="status" id="connectionStatus">Disconnected</div>
+            </div>
+            
+            <!-- Client Information -->
+            <div class="client-info" id="clientInfoSection" style="display: none;">
+                <h3>👤 Client Information</h3>
+                <div class="info-grid" id="clientInfoGrid">
+                    <!-- Client info will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Playoffs Section -->
+            <div class="playoffs-section">
+                <h3 class="section-title">🏆 Playoffs</h3>
+                <div class="playoffs-grid" id="playoffsGrid">
+                    <!-- Playoffs will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Live Matches Section -->
+            <div class="live-matches-section">
+                <h3 class="section-title">⚡ Live Matches</h3>
+                <div class="live-matches-grid" id="liveMatchesGrid">
+                    <!-- Live matches will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Messages -->
+            <div class="messages">
+                <h3>📝 Messages</h3>
+                <div id="messagesList">
+                    <!-- Messages will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        let socket = null;
+        let isConnected = false;
+        let currentClientId = null;
+        let autoUpdateInterval = null;
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            addMessage('Application loaded. Ready to connect.', 'info');
+        });
+        
+        function connect() {
+            const clientId = document.getElementById('clientId').value.trim();
+            if (!clientId) {
+                addMessage('Please enter a client ID', 'error');
+                return;
+            }
+            
+            if (isConnected) {
+                addMessage('Already connected. Please disconnect first.', 'warning');
+                return;
+            }
+            
+            addMessage(`Connecting to WebSocket server as ${clientId}...`, 'info');
+            updateConnectionStatus('connecting');
+            
+            // Create socket connection
+            socket = io('http://localhost:5000');
+            currentClientId = clientId;
+            
+            // Connection event handlers
+            socket.on('connect', function() {
+                addMessage('Connected to WebSocket server', 'success');
+                updateConnectionStatus('connected');
+                isConnected = true;
+                updateButtonStates();
+                
+                // Join as client
+                socket.emit('join_client', { client_id: clientId });
+            });
+            
+            socket.on('disconnect', function() {
+                addMessage('Disconnected from WebSocket server', 'warning');
+                updateConnectionStatus('disconnected');
+                isConnected = false;
+                updateButtonStates();
+                stopAutoUpdate();
+            });
+            
+            socket.on('connected', function(data) {
+                addMessage(`Server: ${data.message}`, 'info');
+            });
+            
+            socket.on('joined', function(data) {
+                addMessage(`Joined as ${data.client_id}`, 'success');
+                addMessage(`Assigned leagues: ${data.assigned_leagues.join(', ')}`, 'info');
+                
+                // Display client information
+                displayClientInfo(data);
+                
+                // Display playoffs
+                displayPlayoffs(data.playoffs);
+                
+                // Start auto-updates
+                startAutoUpdate();
+            });
+            
+            socket.on('error', function(data) {
+                addMessage(`Error: ${data.message}`, 'error');
+            });
+            
+            socket.on('client_updates', function(data) {
+                addMessage(`Live update for ${data.client_id}: ${data.live_matches.length} live matches, ${data.total_playoffs} total playoffs`, 'info');
+                updateLiveMatches(data.live_matches);
+                
+                // Auto-update playoffs if data is available
+                if (data.playoffs) {
+                    displayPlayoffs(data.playoffs);
+                }
+            });
+            
+            socket.on('playoffs_data', function(data) {
+                addMessage(`Playoffs data received: ${data.playoffs.length} playoffs`, 'info');
+                displayPlayoffs(data.playoffs);
+            });
+            
+            socket.on('live_matches_data', function(data) {
+                addMessage(`Live matches data: ${data.count} matches`, 'info');
+                updateLiveMatches(data.live_matches);
+            });
+            
+            socket.on('client_balance', function(data) {
+                addMessage(`Balance update: $${data.balance}`, 'info');
+                updateClientBalance(data);
+            });
+            
+            socket.on('client_info', function(data) {
+                addMessage(`Client info received for ${data.client_id}`, 'info');
+                displayClientInfo(data);
+            });
+            
+            socket.on('playoff_started', function(data) {
+                addMessage(`Playoff started: ${data.playoff_id}`, 'success');
+                refreshPlayoffs();
+            });
+            
+            socket.on('playoff_stopped', function(data) {
+                addMessage(`Playoff stopped: ${data.playoff_id}`, 'warning');
+                refreshPlayoffs();
+            });
+        }
+        
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+            isConnected = false;
+            currentClientId = null;
+            updateConnectionStatus('disconnected');
+            updateButtonStates();
+            stopAutoUpdate();
+            clearClientData();
+            addMessage('Disconnected from server', 'info');
+        }
+        
+        function refreshData() {
+            if (!isConnected || !currentClientId) {
+                addMessage('Not connected to server', 'error');
+                return;
+            }
+            
+            addMessage('Refreshing data...', 'info');
+            
+            // Get playoffs
+            socket.emit('get_playoffs', { client_id: currentClientId });
+            
+            // Get live matches
+            socket.emit('get_live_matches', { client_id: currentClientId });
+            
+            // Get client info
+            socket.emit('get_client_info', { client_id: currentClientId });
+            
+            // Get balance
+            socket.emit('get_balance', { client_id: currentClientId });
+        }
+        
+        function startPlayoff(playoffId) {
+            if (!isConnected) {
+                addMessage('Not connected to server', 'error');
+                return;
+            }
+            
+            addMessage(`Starting playoff ${playoffId}...`, 'info');
+            socket.emit('start_playoff', { playoff_id: playoffId });
+        }
+        
+        function stopPlayoff(playoffId) {
+            if (!isConnected) {
+                addMessage('Not connected to server', 'error');
+                return;
+            }
+            
+            addMessage(`Stopping playoff ${playoffId}...`, 'info');
+            socket.emit('stop_playoff', { playoff_id: playoffId });
+        }
+        
+        function startAutoUpdate() {
+            if (autoUpdateInterval) {
+                clearInterval(autoUpdateInterval);
+            }
+            
+            // Refresh data every 5 seconds
+            autoUpdateInterval = setInterval(() => {
+                if (isConnected && currentClientId) {
+                    refreshData();
+                }
+            }, 5000);
+            
+            addMessage('Auto-update started (every 5 seconds)', 'success');
+        }
+        
+        function stopAutoUpdate() {
+            if (autoUpdateInterval) {
+                clearInterval(autoUpdateInterval);
+                autoUpdateInterval = null;
+            }
+            addMessage('Auto-update stopped', 'info');
+        }
+        
+        function updateConnectionStatus(status) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.className = `status ${status}`;
+            
+            switch(status) {
+                case 'connected':
+                    statusEl.textContent = '✅ Connected';
+                    break;
+                case 'connecting':
+                    statusEl.textContent = '🔄 Connecting...';
+                    break;
+                case 'disconnected':
+                    statusEl.textContent = '❌ Disconnected';
+                    break;
+            }
+        }
+        
+        function updateButtonStates() {
+            document.getElementById('connectBtn').disabled = isConnected;
+            document.getElementById('disconnectBtn').disabled = !isConnected;
+            document.getElementById('refreshBtn').disabled = !isConnected;
+        }
+        
+        function displayClientInfo(data) {
+            const section = document.getElementById('clientInfoSection');
+            const grid = document.getElementById('clientInfoGrid');
+            
+            if (data.client_data) {
+                // Full client info
+                grid.innerHTML = `
+                    <div class="info-item">
+                        <div class="info-value">${data.client_data.name}</div>
+                        <div class="info-label">Client Name</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${data.client_data.company_name || 'N/A'}</div>
+                        <div class="info-label">Company</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">$${data.balance ? data.balance.balance : 'N/A'}</div>
+                        <div class="info-label">Balance</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${data.playoffs ? data.playoffs.length : 0}</div>
+                        <div class="info-label">Total Playoffs</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${data.assigned_leagues ? data.assigned_leagues.length : 0}</div>
+                        <div class="info-label">Assigned Leagues</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${data.client_data.max_playoffs_per_day || 50}</div>
+                        <div class="info-label">Daily Limit</div>
+                    </div>
+                `;
+            } else {
+                // Basic info from join event
+                grid.innerHTML = `
+                    <div class="info-item">
+                        <div class="info-value">${data.client_id}</div>
+                        <div class="info-label">Client ID</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${data.playoffs ? data.playoffs.length : 0}</div>
+                        <div class="info-label">Total Playoffs</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-value">${data.assigned_leagues ? data.assigned_leagues.length : 0}</div>
+                        <div class="info-label">Assigned Leagues</div>
+                    </div>
+                `;
+            }
+            
+            section.style.display = 'block';
+        }
+        
+        function displayPlayoffs(playoffs) {
+            const grid = document.getElementById('playoffsGrid');
+            
+            if (!playoffs || playoffs.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #6c757d;">No playoffs available</div>';
+                return;
+            }
+            
+            grid.innerHTML = playoffs.map(playoff => `
+                <div class="playoff-card ${playoff.status}">
+                    <div class="playoff-header">
+                        <div class="playoff-id">${playoff.id}</div>
+                        <div class="playoff-status status-${playoff.status}">${playoff.status}</div>
+                    </div>
+                    
+                    <div class="playoff-stats">
+                        <div class="stat">
+                            <div class="stat-value">${playoff.match_count}</div>
+                            <div class="stat-label">Matches</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${playoff.total_goals}</div>
+                            <div class="stat-label">Goals</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${playoff.total_events}</div>
+                            <div class="stat-label">Events</div>
+                        </div>
+                    </div>
+                    
+                    ${playoff.matches ? `
+                        <div class="matches-list">
+                            ${playoff.matches.map(match => `
+                                <div class="match-item">
+                                    <div class="match-teams">${match.home_team} vs ${match.away_team}</div>
+                                    <div class="match-score">${match.home_score} - ${match.away_score}</div>
+                                    <div class="match-status match-${match.status}">${match.status}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="playoff-actions">
+                        ${playoff.status === 'scheduled' ? `
+                            <button class="btn btn-success btn-small" onclick="startPlayoff('${playoff.id}')">Start</button>
+                        ` : ''}
+                        ${playoff.status === 'live' ? `
+                            <button class="btn btn-danger btn-small" onclick="stopPlayoff('${playoff.id}')">Stop</button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateLiveMatches(liveMatches) {
+            const grid = document.getElementById('liveMatchesGrid');
+            
+            if (!liveMatches || liveMatches.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #6c757d;">No live matches</div>';
+                return;
+            }
+            
+            grid.innerHTML = liveMatches.map(match => `
+                <div class="live-match-card">
+                    <h4>${match.home_team} vs ${match.away_team}</h4>
+                    <div class="live-match-score">${match.home_score} - ${match.away_score}</div>
+                    <div class="live-match-minute">${match.current_minute}'</div>
+                    <div style="margin-top: 10px; font-size: 0.9em;">
+                        Playoff: ${match.playoff_id}<br>
+                        Events: ${match.events}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateClientBalance(balanceData) {
+            // Update balance in client info if displayed
+            const balanceEl = document.querySelector('.info-item .info-value');
+            if (balanceEl && balanceEl.nextElementSibling.textContent === 'Balance') {
+                balanceEl.textContent = `$${balanceData.balance}`;
+            }
+        }
+        
+        function refreshPlayoffs() {
+            if (isConnected && currentClientId) {
+                socket.emit('get_playoffs', { client_id: currentClientId });
+            }
+        }
+        
+        function clearClientData() {
+            document.getElementById('clientInfoSection').style.display = 'none';
+            document.getElementById('playoffsGrid').innerHTML = '';
+            document.getElementById('liveMatchesGrid').innerHTML = '';
+        }
+        
+        function addMessage(message, type = 'info') {
+            const messagesList = document.getElementById('messagesList');
+            const timestamp = new Date().toLocaleTimeString();
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+            messageEl.innerHTML = `
+                <div>${message}</div>
+                <div class="timestamp">${timestamp}</div>
+            `;
+            messagesList.appendChild(messageEl);
+            messagesList.scrollTop = messagesList.scrollHeight;
+        }
+    </script>
+</body>
+</html>

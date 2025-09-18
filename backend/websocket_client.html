@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VFL Virtual Soccer - WebSocket Client</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .client-info { background-color: #d1ecf1; color: #0c5460; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .match-card {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #f8f9fa;
+        }
+        .match-score {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .match-time {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        .events {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .balance-info {
+            background-color: #e2e3e5;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏆 VFL Virtual Soccer - WebSocket Client</h1>
+    
+    <div class="container">
+        <h2>Connection Status</h2>
+        <div id="status" class="status disconnected">Disconnected</div>
+        <button id="connectBtn" onclick="connect()">Connect</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+    </div>
+    
+    <div class="container">
+        <h2>Client Login</h2>
+        <div>
+            <label for="clientId">Client ID:</label>
+            <select id="clientId">
+                <option value="client_premier">Premier Betting Shop London</option>
+                <option value="client_europe">European Sports Betting</option>
+                <option value="client_spain">Casa de Apuestas Madrid</option>
+                <option value="client_germany">Wettbüro Berlin</option>
+                <option value="client_italy">Scommesse Roma</option>
+                <option value="client_france">Paris Sport Pari</option>
+                <option value="client_championship">Championship Betting Birmingham</option>
+                <option value="client_global">Global Sports Betting</option>
+            </select>
+            <button onclick="joinClient()" id="joinBtn" disabled>Join as Client</button>
+        </div>
+        <div id="clientInfo" class="client-info" style="display: none;"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Live Matches</h2>
+        <div id="liveMatches">No live matches</div>
+        <button onclick="getPlayoffs()" id="playoffsBtn" disabled>Refresh Playoffs</button>
+    </div>
+    
+    <div class="container">
+        <h2>Client Balance</h2>
+        <div id="balanceInfo" class="balance-info">Not connected</div>
+        <button onclick="getBalance()" id="balanceBtn" disabled>Get Balance</button>
+    </div>
+    
+    <div class="container">
+        <h2>Event Log</h2>
+        <div id="log" class="log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        let socket = null;
+        let currentClientId = null;
+        let isConnected = false;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(message, className) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${className}`;
+        }
+
+        function connect() {
+            if (socket) {
+                socket.disconnect();
+            }
+
+            socket = io('http://localhost:5000');
+            
+            socket.on('connect', function() {
+                isConnected = true;
+                updateStatus('Connected to server', 'connected');
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = false;
+                document.getElementById('joinBtn').disabled = false;
+                log('Connected to WebSocket server');
+            });
+
+            socket.on('disconnect', function() {
+                isConnected = false;
+                updateStatus('Disconnected from server', 'disconnected');
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+                document.getElementById('joinBtn').disabled = true;
+                document.getElementById('playoffsBtn').disabled = true;
+                document.getElementById('balanceBtn').disabled = true;
+                log('Disconnected from WebSocket server');
+            });
+
+            socket.on('connected', function(data) {
+                log(`Server: ${data.message}`);
+            });
+
+            socket.on('joined', function(data) {
+                currentClientId = data.client_id;
+                document.getElementById('clientInfo').innerHTML = `
+                    <strong>Client:</strong> ${data.client_id}<br>
+                    <strong>Assigned Leagues:</strong> ${data.assigned_leagues.join(', ')}<br>
+                    <strong>Message:</strong> ${data.message}
+                `;
+                document.getElementById('clientInfo').style.display = 'block';
+                document.getElementById('playoffsBtn').disabled = false;
+                document.getElementById('balanceBtn').disabled = false;
+                log(`Joined as client: ${data.client_id}`);
+                getPlayoffs();
+                getBalance();
+            });
+
+            socket.on('left', function(data) {
+                currentClientId = null;
+                document.getElementById('clientInfo').style.display = 'none';
+                document.getElementById('playoffsBtn').disabled = true;
+                document.getElementById('balanceBtn').disabled = true;
+                log(`Left client session: ${data.message}`);
+            });
+
+            socket.on('client_updates', function(data) {
+                log(`Client updates for ${data.client_id}: ${data.live_matches.length} live matches`);
+                updateLiveMatches(data.live_matches);
+            });
+
+            socket.on('playoffs_data', function(data) {
+                log(`Received playoffs data: ${data.playoffs.length} playoffs`);
+                updatePlayoffsDisplay(data.playoffs);
+            });
+
+            socket.on('balance_data', function(data) {
+                updateBalanceDisplay(data);
+            });
+
+            socket.on('match_update', function(data) {
+                log(`Match update: ${data.match_id}`);
+            });
+
+            socket.on('error', function(data) {
+                log(`Error: ${data.message}`);
+            });
+
+            socket.on('welcome', function(data) {
+                log(`Welcome: ${data.message}`);
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+            }
+        }
+
+        function joinClient() {
+            if (!isConnected) {
+                log('Not connected to server');
+                return;
+            }
+
+            const clientId = document.getElementById('clientId').value;
+            socket.emit('join_client', { client_id: clientId });
+        }
+
+        function getPlayoffs() {
+            if (!isConnected || !currentClientId) {
+                log('Not connected or no client selected');
+                return;
+            }
+
+            socket.emit('get_playoffs', { client_id: currentClientId });
+        }
+
+        function getBalance() {
+            if (!isConnected || !currentClientId) {
+                log('Not connected or no client selected');
+                return;
+            }
+
+            socket.emit('get_balance', { client_id: currentClientId });
+        }
+
+        function updateLiveMatches(matches) {
+            const container = document.getElementById('liveMatches');
+            
+            if (matches.length === 0) {
+                container.innerHTML = 'No live matches';
+                return;
+            }
+
+            let html = '';
+            matches.forEach(match => {
+                html += `
+                    <div class="match-card">
+                        <div class="match-score">${match.home_team} ${match.home_score} - ${match.away_score} ${match.away_team}</div>
+                        <div class="match-time">${match.current_minute.toFixed(1)} minutes</div>
+                        <div class="events">Events: ${match.events} | Status: ${match.status}</div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function updatePlayoffsDisplay(playoffs) {
+            log(`Displaying ${playoffs.length} playoffs`);
+            // This could be expanded to show playoff details
+        }
+
+        function updateBalanceDisplay(balance) {
+            const container = document.getElementById('balanceInfo');
+            container.innerHTML = `
+                <strong>Balance:</strong> ${balance.balance} ${balance.currency}<br>
+                <strong>Credit Limit:</strong> ${balance.credit_limit} ${balance.currency}<br>
+                <strong>Daily Limit:</strong> ${balance.daily_limit} ${balance.currency}<br>
+                <strong>Available Credit:</strong> ${balance.available_credit} ${balance.currency}<br>
+                <strong>Overdrawn:</strong> ${balance.is_overdrawn ? 'Yes' : 'No'}
+            `;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            log('VFL Virtual Soccer WebSocket Client loaded');
+            log('Click Connect to start');
+        };
+    </script>
+</body>
+</html>

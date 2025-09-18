@@ -1,0 +1,1755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VFL Virtual Soccer - Sports Betting</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sports-betting-layout {
+            display: grid;
+            grid-template-columns: 1fr 800px; /* Made live-scores-area wider */
+            height: 100vh;
+        }
+
+        /* Left Side - Live Match Display */
+        .live-match-area {
+            position: relative;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><defs><pattern id="grass" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="%23228B22"/><rect width="20" height="20" fill="none" stroke="%23196619" stroke-width="0.5"/></pattern></defs><rect width="800" height="600" fill="url(%23grass)"/><rect x="50" y="50" width="700" height="500" fill="none" stroke="white" stroke-width="3"/><circle cx="400" cy="300" r="80" fill="none" stroke="white" stroke-width="3"/><rect x="50" y="200" width="80" height="200" fill="none" stroke="white" stroke-width="3"/><rect x="670" y="200" width="80" height="200" fill="none" stroke="white" stroke-width="3"/></svg>') center/cover;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .season-header {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #4ade80;
+        }
+
+        .stadium-background {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .live-match-display {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 40px;
+            min-width: 400px;
+            backdrop-filter: blur(10px);
+        }
+
+        .match-teams {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #fbbf24;
+        }
+
+        .match-score-large {
+            font-size: 48px;
+            font-weight: 900;
+            color: #10b981;
+            margin: 20px 0;
+        }
+
+        .match-time-large {
+            font-size: 18px;
+            color: #94a3b8;
+            margin-bottom: 15px;
+        }
+
+        .match-events-ticker {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+            min-height: 30px;
+            align-items: center;
+        }
+
+        .event-mini {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: help;
+        }
+
+        .betting-call-to-action {
+            background: rgba(34, 197, 94, 0.9);
+            padding: 20px 40px;
+            border-radius: 12px;
+            font-size: 32px;
+            font-weight: 900;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .connection-controls {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .connection-controls select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            color: #1f2937;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-success {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+        }
+
+        .connection-status {
+            margin-left: auto;
+        }
+
+        .status {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status.connected {
+            background: #22c55e;
+            color: white;
+        }
+
+        .status.disconnected {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* Right Side - Live Scores */
+        .live-scores-area {
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .live-scores-header {
+            background: #1f2937;
+            padding: 15px 20px;
+            border-bottom: 2px solid #4ade80;
+        }
+
+        .live-scores-header h3 {
+            color: #4ade80;
+            margin-bottom: 5px;
+        }
+
+        #playoffName {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        .live-scores-table {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .table-header {
+            display: grid;
+            gap: 4px;
+            padding: 12px 12px;
+            background: #374151;
+            font-weight: bold;
+            font-size: 12px;
+            color: #d1d5db;
+            border-bottom: 1px solid #4b5563;
+            white-space: nowrap; /* Prevent header text wrapping */
+            align-items: center; /* Center content vertically */
+        }
+        
+        /* Dynamic grid columns based on mode */
+        .table-header.betting-mode {
+            grid-template-columns: 1.5fr 1.5fr 4fr; /* Home | Away | Odds */
+        }
+        
+        .table-header.live-mode {
+            grid-template-columns: 5fr 5fr 60px 70px 50px; /* Home | Away | Score | Events | Status - Maximum space for team names */
+        }
+
+        /* Betting matches: Home | Away | Odds */
+        .betting-match-row {
+            display: grid;
+            grid-template-columns: 1.5fr 1.5fr 4fr; /* Home | Away | Odds */
+            gap: 10px;
+            padding: 12px 20px;
+            border-bottom: 1px solid #374151;
+            transition: background 0.3s ease;
+            white-space: nowrap; /* Prevent text wrapping */
+            align-items: center; /* Center content vertically */
+        }
+
+        /* Live matches: Home | Away | Score | Events | Status */
+        .live-match-row {
+            display: grid;
+            grid-template-columns: 4fr 4fr 60px 70px 50px; /* Home | Away | Score | Events | Status - Maximum space for team names */
+            gap: 4px;
+            padding: 8px 12px;
+            border-bottom: 1px solid #374151;
+            transition: background 0.3s ease;
+            white-space: nowrap; /* Prevent text wrapping */
+            align-items: center; /* Center content vertically */
+        }
+
+        .match-row {
+            display: grid;
+            grid-template-columns: 2fr 100px 120px 80px;
+            gap: 10px;
+            padding: 12px 20px;
+            border-bottom: 1px solid #374151;
+            transition: background 0.3s ease;
+        }
+
+        .match-row:hover {
+            background: rgba(75, 85, 99, 0.5);
+        }
+
+        .match-row.live {
+            background: rgba(34, 197, 94, 0.1);
+            border-left: 4px solid #22c55e;
+        }
+
+        .match-teams-cell {
+            font-weight: 500;
+        }
+
+        .match-odds-cell {
+            font-weight: bold;
+            color: #fbbf24;
+            text-align: center;
+            font-size: 11px;
+            font-family: monospace;
+        }
+
+        .match-score-cell-wide {
+            font-weight: bold;
+            color: #10b981;
+            text-align: center;
+        }
+
+        .betting-odds-display {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            align-items: stretch;
+        }
+
+        .betting-odds-display-full {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: stretch;
+        }
+
+        .odds-group {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            padding: 6px;
+        }
+
+        .odds-group-title {
+            font-size: 9px;
+            color: #94a3b8;
+            text-align: center;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+
+        .odds-row {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+        }
+
+        .odds-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 3px 6px;
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            min-width: 45px;
+        }
+
+        .odds-option:hover {
+            background: rgba(251, 191, 36, 0.2);
+            border-color: rgba(251, 191, 36, 0.6);
+            transform: scale(1.05);
+        }
+
+        .odds-label {
+            font-size: 12px;
+            color: #d9dee5;
+            margin-bottom: 1px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .odds-value {
+            font-weight: bold;
+            color: #fbbf24;
+            font-size: 16px; /* Made bigger from 11px to 16px */
+        }
+
+        /* Team column styling */
+        .home-team-cell, .away-team-cell {
+            font-weight: bold;
+            color: #e5e7eb;
+            padding: 3px;
+            text-align: left;
+            text-transform: uppercase;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+        }
+
+        .home-team-cell {
+            color: #60a5fa; /* Light blue for home team */
+        }
+
+        .away-team-cell {
+            color: #f87171; /* Light red for away team */
+        }
+
+        /* Prevent cell content from wrapping */
+        .live-match-row > div {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .match-score-cell, .match-events-cell, .match-status-cell {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .match-score-cell {
+            color: #10b981; /* Green for scores */
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .match-events-cell {
+            max-width: 100px;
+        }
+
+        .match-status-cell {
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            font-weight: bold;
+        }
+
+        /* Betting Section Styles */
+        .betting-section {
+            margin-bottom: 20px;
+        }
+
+        .section-header {
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 14px;
+            border-bottom: 2px solid;
+        }
+
+        .betting-header {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border-color: #22c55e;
+        }
+
+        .live-header {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+
+        .betting-matches-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px;
+        }
+
+        .betting-match-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .betting-match-teams {
+            font-size: 16px;
+            font-weight: bold;
+            color: #fbbf24;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .betting-odds-container {
+            display: flex;
+            gap: 15px;
+            justify-content: space-between;
+        }
+
+        /* Live Section Styles */
+        .live-section {
+            margin-top: 10px;
+        }
+
+        .live-matches-table {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .live-table-header {
+            display: grid;
+            grid-template-columns: 2fr 100px 120px 80px;
+            gap: 10px;
+            padding: 10px 15px;
+            background: #374151;
+            font-weight: bold;
+            font-size: 12px;
+            color: #d1d5db;
+            border-bottom: 1px solid #4b5563;
+        }
+
+        .live-match-row {
+            display: grid;
+            grid-template-columns: 2fr 2fr 100px 120px 80px;
+            gap: 10px;
+            padding: 10px 15px;
+            border-bottom: 1px solid #374151;
+        }
+
+        .match-events-cell {
+            display: flex;
+            gap: 3px;
+            justify-content: center;
+        }
+
+        .match-status-cell {
+            text-align: center;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            max-width: 100px;
+        }
+
+        .status-betting-open {
+            background: #22c55e;
+            color: white;
+        }
+
+        .status-betting-locked {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .status-live {
+            background: #ef4444;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .status-finished {
+            background: #6b7280;
+            color: white;
+        }
+
+        .event-icon {
+            font-size: 10px;
+            padding: 1px 3px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            cursor: help;
+        }
+
+        .no-events {
+            color: #6b7280;
+            font-style: italic;
+            font-size: 10px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Debug panel */
+        .debug-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            z-index: 1000;
+            max-width: 200px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="sports-betting-layout">
+        <!-- Left Side: Live Match Display -->
+        <div class="live-match-area">
+            <div class="season-header">
+                <span id="seasonInfo">Season 85-23 - Matchday 1</span>
+            </div>
+            
+            <div class="stadium-background">
+                <div class="live-match-display" id="liveMatchDisplay">
+                    <div class="match-teams" id="matchTeams">No Live Match</div>
+                    <div class="match-score-large" id="matchScoreLarge">- - -</div>
+                    <div class="match-time-large" id="matchTimeLarge">--'</div>
+                    <div class="match-events-ticker" id="matchEventsTicker">
+                        <span class="no-events">Waiting for match events...</span>
+                    </div>
+                </div>
+                
+                <div class="betting-call-to-action">
+                    <h1 id="callToActionText">PLACE YOUR BETS</h1>
+                </div>
+            </div>
+            
+            <div class="connection-controls">
+                <select id="clientSelect">
+                    <option value="client_premier">Premier League</option>
+                    <option value="demo_client">Demo League</option>
+                    <option value="client_global">Global League</option>
+                    <option value="client_europe">European League</option>
+                    <option value="client_spain">La Liga</option>
+                    <option value="client_italy">Serie A</option>
+                    <option value="client_germany">Bundesliga</option>
+                    <option value="client_france">Ligue 1</option>
+                    <option value="client_championship">Championship</option>
+                </select>
+                <button class="btn btn-success" onclick="connectAndJoin()" id="joinBtn">START BETTING</button>
+                <button class="btn" onclick="testConnection()" style="background: #6b7280; color: white; margin-left: 10px;">Test Connection</button>
+                <div class="connection-status">
+                    <span id="connectionStatus" class="status disconnected">Disconnected</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Live Scores Table -->
+        <div class="live-scores-area">
+            <div class="live-scores-header">
+                <h3>Live Scores</h3>
+                <span id="playoffName">Loading playoff...</span>
+            </div>
+            
+            <div class="live-scores-table">
+                <div class="table-header" id="tableHeader">
+                    <div class="home-team-col">HOME</div>
+                    <div class="away-team-col">AWAY</div>
+                    <div class="score-col">Score</div>
+                    <div class="events-col">Events</div>
+                    <div class="status-col">Status</div>
+                </div>
+                <div class="table-body" id="liveScoresBody">
+                    <div class="loading-row">Connecting...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debugPanel">
+        <div>Debug Info:</div>
+        <div id="debugInfo">Initializing...</div>
+    </div>
+
+    <script src="http://localhost:5000/socket.io/socket.io.js"></script>
+    <script>
+        // Fallback to CDN if local Socket.IO fails to load
+        if (typeof io === 'undefined') {
+            console.log('🔄 Loading Socket.IO from CDN...');
+            const script = document.createElement('script');
+            script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
+            document.head.appendChild(script);
+        }
+    </script>
+    <script>
+        let socket = null;
+        let currentClient = null;
+        let availableLiveMatches = [];
+        let currentMatchIndex = 0;
+        let matchRotationInterval = null;
+        let currentPlayoff = null;
+
+        // Event icons mapping
+        const eventIcons = {
+            'goal': '⚽',
+            'yellow_card': '🟨',
+            'red_card': '🟥',
+            'corner': '⭐',
+            'free_kick': '🦶',
+            'penalty': '🎯',
+            'offside': '🚫',
+            'foul': '⚠️',
+            'substitution': '🔄',
+            'match_start': '🟢',
+            'first_half_end': '⏸️',
+            'second_half_start': '▶️',
+            'match_end': '🏁'
+        };
+
+        function connectAndJoin() {
+            const clientId = document.getElementById('clientSelect').value;
+            if (!clientId) {
+                console.error('❌ No client selected');
+                updateDebugInfo('Error', 'No client selected');
+                return;
+            }
+
+            console.log('🔌 Starting connection to server...');
+            updateDebugInfo('Status', 'Connecting...');
+
+            if (socket) {
+                console.log('🔌 Disconnecting existing socket...');
+                socket.disconnect();
+            }
+
+            console.log('🔌 Creating new socket connection...');
+            socket = io('http://localhost:5000', {
+                pingTimeout: 300000,  // 5 minutes timeout (must match server)
+                pingInterval: 30000,  // Ping every 30 seconds (must match server)
+                timeout: 60000,       // 1 minute connection timeout
+                transports: ['polling', 'websocket'],
+                upgrade: true,
+                rememberUpgrade: true
+            });
+
+            socket.on('connect_error', function(error) {
+                console.error('❌ Connection error:', error);
+                updateDebugInfo('Error', `Connection failed: ${error.message}`);
+                updateConnectionStatus(false);
+            });
+
+            socket.on('disconnect', function(reason) {
+                console.log('❌ Disconnected from server, reason:', reason);
+                updateConnectionStatus(false);
+                updateDebugInfo('Disconnect Reason', reason);
+            });
+
+            // Debug listener for ALL events
+            socket.onAny(function(eventName, data) {
+                console.log('🎯 DEBUG - ANY event received:', {type: 2, nsp: '/', data: [eventName, data]});
+                console.log('🎯 DEBUG - Event name:', eventName);
+                console.log('🎯 DEBUG - Event payload:', data);
+                updateDebugInfo('Last Any Event', `${eventName} at ${new Date().toLocaleTimeString()}`);
+            });
+
+            socket.on('connect', function() {
+                console.log('🔌 DEBUG - Socket connected successfully');
+                console.log('🔌 DEBUG - Socket ID:', socket.id);
+                updateConnectionStatus(true);
+                updateDebugInfo('Connection', 'Connected');
+                updateDebugInfo('Socket ID', socket.id);
+                
+                // Join as client immediately
+                socket.emit('join_client', { client_id: clientId });
+                currentClient = clientId;
+                
+                // Reset event counter
+                window.eventsReceived = 0;
+                updateDebugInfo('Events Received', 0);
+            });
+
+            socket.on('disconnect', function() {
+                console.log('❌ Disconnected from server');
+                updateConnectionStatus(false);
+                stopLiveMatchRotation();
+                updateDebugInfo('Connection', 'Disconnected');
+            });
+
+            socket.on('joined', function(data) {
+                console.log('👤 DEBUG - Client joined event:', data);
+                updateDebugInfo('Client ID', data.client_id);
+                updateDebugInfo('Join Time', new Date().toLocaleTimeString());
+                
+                if (data.playoffs && data.playoffs.length > 0) {
+                    console.log('🏆 DEBUG - Received playoffs on join:', data.playoffs.length);
+                    // Show the first (and only) playoff
+                    currentPlayoff = data.playoffs[0];
+                    displayCurrentPlayoff(currentPlayoff);
+                    updateDebugInfo('Playoffs', data.playoffs.length);
+                }
+            });
+
+            socket.on('full_update', function(data) {
+                console.log('📦 DEBUG - Full update received, data keys:', Object.keys(data));
+                console.log('📦 DEBUG - Playoffs count:', data.playoffs?.length || 0);
+                console.log('📦 DEBUG - Live matches:', data.live_matches?.length || 0);
+                
+                if (data.playoffs && data.playoffs.length > 0) {
+                    currentPlayoff = data.playoffs[0];
+                    displayCurrentPlayoff(currentPlayoff);
+                }
+                
+                if (data.live_matches && data.live_matches.length > 0) {
+                    availableLiveMatches = data.live_matches;
+                    console.log(`📺 DEBUG - Found ${availableLiveMatches.length} live matches for rotation`);
+                    startLiveMatchRotation();
+                } else {
+                    showNoLiveMatch();
+                }
+                
+                console.log('📦 Full update processed');
+            });
+
+            socket.on('real_time_event', function(data) {
+                console.log('⚡ REAL_TIME_EVENT RECEIVED:', data);
+                console.log('📊 DEBUG - Event type:', data.type);
+                console.log('📊 DEBUG - Event data keys:', Object.keys(data));
+                
+                // Add to debug panel
+                updateDebugInfo('Events Received', (window.eventsReceived || 0) + 1);
+                window.eventsReceived = (window.eventsReceived || 0) + 1;
+                updateDebugInfo('Last Event', `${data.type} at ${new Date().toLocaleTimeString()}`);
+                
+                if (data.type === 'match_event') {
+                    console.log('🥅 DEBUG - Processing match_event for match:', data.match_id);
+                    handleMatchEvent(data);
+                } else if (data.type === 'match_start') {
+                    console.log('🏁 DEBUG - Processing match_start for match:', data.match_id);
+                    handleMatchStart(data);
+                } else if (data.type === 'match_end') {
+                    console.log('🏆 DEBUG - Processing match_end for match:', data.match_id);
+                    handleMatchEnd(data);
+                } else if (data.type === 'betting_opened') {
+                    console.log('🎯 DEBUG - Processing betting_opened for match:', data.match_id);
+                    handleBettingOpened(data);
+                } else if (data.type === 'betting_locked') {
+                    console.log('🔒 DEBUG - Processing betting_locked for match:', data.match_id);
+                    handleBettingLocked(data);
+                } else if (data.type === 'playoff_updated') {
+                    console.log('📈 DEBUG - Processing playoff_updated');
+                    handlePlayoffUpdated(data);
+                } else if (data.type === 'playoff_betting_locked') {
+                    console.log('🔐 DEBUG - Processing playoff_betting_locked');
+                    handlePlayoffBettingLocked(data);
+                } else if (data.type === 'playoff_finished') {
+                    console.log('🏆 DEBUG - Processing playoff_finished');
+                    handlePlayoffFinished(data);
+                } else {
+                    console.log('❓ DEBUG - Unknown event type received:', data.type);
+                }
+            });
+
+            // Test event listeners for debugging
+            socket.on('test_broadcast', function(data) {
+                console.log('🧪 TEST_BROADCAST RECEIVED:', data);
+                updateDebugInfo('Test Broadcast', 'Received at ' + new Date().toLocaleTimeString());
+            });
+
+            socket.on('emergency_event', function(data) {
+                console.log('🚨 EMERGENCY_EVENT RECEIVED:', data);
+                updateDebugInfo('Emergency Event', 'Received at ' + new Date().toLocaleTimeString());
+            });
+
+            socket.on('immediate_test', function(data) {
+                console.log('🟢 IMMEDIATE_TEST RECEIVED:', data);
+                updateDebugInfo('Immediate Test', 'SUCCESS at ' + new Date().toLocaleTimeString());
+            });
+
+            socket.on('socketio_test', function(data) {
+                console.log('🔵 SOCKETIO_TEST RECEIVED:', data);
+                updateDebugInfo('SocketIO Test', 'SUCCESS at ' + new Date().toLocaleTimeString());
+            });
+
+            socket.on('global_test', function(data) {
+                console.log('🌍 GLOBAL_TEST RECEIVED:', data);
+                updateDebugInfo('Global Test', 'SUCCESS at ' + new Date().toLocaleTimeString());
+            });
+
+            socket.on('client_balance', function(data) {
+                console.log('💰 Client balance received:', data);
+                updateDebugInfo('Balance', `${data.currency} ${data.balance}`);
+            });
+
+            socket.on('error', function(data) {
+                console.error('❌ Error from server:', data);
+                updateDebugInfo('Error', data.message);
+            });
+        }
+
+        function displayCurrentPlayoff(playoff) {
+            document.getElementById('playoffName').textContent = playoff.name;
+            
+            // Update betting call-to-action AND table display based on playoff status
+            // This now handles both the call-to-action button and the table layout
+            updateBettingCallToAction(playoff);
+        }
+
+        function createBettingSection(matches) {
+            const section = document.createElement('div');
+            section.className = 'betting-section';
+            
+            // Betting section header
+            const header = document.createElement('div');
+            header.className = 'section-header betting-header';
+            header.innerHTML = '<span>🎲 Available Bets</span>';
+            section.appendChild(header);
+            
+            // Betting matches container
+            const container = document.createElement('div');
+            container.className = 'betting-matches-container';
+            
+            matches.forEach(match => {
+                const matchCard = createBettingMatchCard(match);
+                container.appendChild(matchCard);
+            });
+            
+            section.appendChild(container);
+            return section;
+        }
+
+        function createLiveSection(matches) {
+            const section = document.createElement('div');
+            section.className = 'live-section';
+            
+            // Live section header
+            const header = document.createElement('div');
+            header.className = 'section-header live-header';
+            header.innerHTML = '<span>🔴 Live Matches</span>';
+            section.appendChild(header);
+            
+            // Live matches table
+            const table = document.createElement('div');
+            table.className = 'live-matches-table';
+            
+            // Table header for live matches
+            const tableHeader = document.createElement('div');
+            tableHeader.className = 'live-table-header';
+            tableHeader.innerHTML = `
+                <div>Match</div>
+                <div>Score</div>
+                <div>Events</div>
+                <div>Status</div>
+            `;
+            table.appendChild(tableHeader);
+            
+            matches.forEach(match => {
+                const matchRow = createLiveMatchRow(match);
+                table.appendChild(matchRow);
+            });
+            
+            section.appendChild(table);
+            return section;
+        }
+
+        function updateTableDisplay(playoff, hasLiveMatches) {
+            const tableBody = document.getElementById('liveScoresBody');
+            const tableHeader = document.getElementById('tableHeader');
+            if (!tableBody || !tableHeader) return;
+            
+            tableBody.innerHTML = '';
+            
+            // Check if playoff is finished - if so, always show scores regardless of individual match status
+            const playoffFinished = playoff.status === 'finished';
+            const showScoresMode = hasLiveMatches || playoffFinished;
+            
+            if (showScoresMode) {
+                // Update header for live/finished matches: Home | Away | Score | Events | Status
+                tableHeader.className = 'table-header live-mode';
+                tableHeader.innerHTML = `
+                    <div class="home-team-col">HOME</div>
+                    <div class="away-team-col">AWAY</div>
+                    <div class="score-col">Score</div>
+                    <div class="events-col">Events</div>
+                    <div class="status-col">Status</div>
+                `;
+                
+                // Use live match row format (always shows scores/events)
+                playoff.matches.forEach(match => {
+                    const matchRow = createLiveMatchRow(match);
+                    tableBody.appendChild(matchRow);
+                });
+                
+                if (playoffFinished) {
+                    console.log(`🎯 DEBUG - Table updated to SCORES mode (playoff finished - showing final results)`);
+                } else {
+                    console.log(`🎯 DEBUG - Table updated to LIVE mode (showing scores/events)`);
+                }
+            } else {
+                // Update header for betting: Home | Away | Odds
+                tableHeader.className = 'table-header betting-mode';
+                tableHeader.innerHTML = `
+                    <div class="home-team-col">HOME</div>
+                    <div class="away-team-col">AWAY</div>
+                    <div class="odds-col">Betting Odds</div>
+                `;
+                
+                // Use betting match row format (always shows odds when all matches are pre-match)
+                playoff.matches.forEach(match => {
+                    const matchRow = createBettingMatchRow(match);
+                    tableBody.appendChild(matchRow);
+                });
+                
+                console.log(`🎯 DEBUG - Table updated to BETTING mode (showing odds)`);
+            }
+        }
+
+        function updateBettingCallToAction(playoff) {
+            const callToActionEl = document.getElementById('callToActionText');
+            if (!callToActionEl) return;
+            
+            const status = playoff.status;
+            console.log(`🎲 DEBUG - Updating call-to-action for playoff status: ${status}`);
+            
+            // Priority 1: Check if any matches are currently live
+            const hasLiveMatches = playoff.matches && playoff.matches.some(match => 
+                match.status === 'live'
+            );
+            
+            // Priority 2: Check if any matches have betting open
+            const hasOpenBetting = playoff.matches && playoff.matches.some(match => 
+                match.status === 'betting_open' || match.status === 'scheduled'
+            );
+            
+            // Priority 3: Check if betting is locked (waiting for matches to start)
+            const hasBettingLocked = playoff.matches && playoff.matches.some(match => 
+                match.status === 'betting_locked'
+            );
+            
+            // UPDATE TABLE DISPLAY TO MATCH CALL-TO-ACTION
+            updateTableDisplay(playoff, hasLiveMatches);
+            
+            if (hasLiveMatches) {
+                // Priority 1: Show live matches status
+                callToActionEl.textContent = 'MATCHES LIVE';
+                callToActionEl.parentElement.style.background = 'rgba(239, 68, 68, 0.9)';
+                callToActionEl.parentElement.style.animation = 'pulse 1s infinite';
+                console.log(`🎲 DEBUG - Showing MATCHES LIVE (live matches found)`);
+                
+            } else if (hasOpenBetting) {
+                // Priority 2: Show betting available
+                callToActionEl.textContent = 'PLACE YOUR BETS';
+                callToActionEl.parentElement.style.background = 'rgba(34, 197, 94, 0.9)';
+                callToActionEl.parentElement.style.animation = 'pulse 2s infinite';
+                console.log(`🎲 DEBUG - Showing PLACE YOUR BETS (betting available)`);
+                
+            } else if (hasBettingLocked) {
+                // Priority 3: Betting locked, waiting for start
+                callToActionEl.textContent = 'BETTING LOCKED';
+                callToActionEl.parentElement.style.background = 'rgba(245, 158, 11, 0.9)';
+                callToActionEl.parentElement.style.animation = 'none';
+                console.log(`🎲 DEBUG - Showing BETTING LOCKED (waiting for matches to start)`);
+                
+            } else {
+                // Fallback: Use playoff-level status
+                switch(status) {
+                    case 'betting_open':
+                        callToActionEl.textContent = 'PLACE YOUR BETS';
+                        callToActionEl.parentElement.style.background = 'rgba(34, 197, 94, 0.9)';
+                        callToActionEl.parentElement.style.animation = 'pulse 2s infinite';
+                        break;
+                        
+                    case 'finished':
+                        callToActionEl.textContent = 'PLAYOFF FINISHED';
+                        callToActionEl.parentElement.style.background = 'rgba(107, 114, 128, 0.9)';
+                        callToActionEl.parentElement.style.animation = 'none';
+                        break;
+                        
+                    case 'scheduled':
+                        callToActionEl.textContent = 'BETTING OPENS SOON';
+                        callToActionEl.parentElement.style.background = 'rgba(59, 130, 246, 0.9)';
+                        callToActionEl.parentElement.style.animation = 'pulse 3s infinite';
+                        break;
+                        
+                    default:
+                        callToActionEl.textContent = 'PLACE YOUR BETS';
+                        callToActionEl.parentElement.style.background = 'rgba(34, 197, 94, 0.9)';
+                        callToActionEl.parentElement.style.animation = 'pulse 2s infinite';
+                }
+            }
+        }
+
+        function createBettingMatchCard(match) {
+            const card = document.createElement('div');
+            card.className = 'betting-match-card';
+            card.dataset.matchId = match.id;
+            
+            const homeTeam = match.home_team?.name || match.home_team || 'Team A';
+            const awayTeam = match.away_team?.name || match.away_team || 'Team B';
+            
+            const homeOdds = match.home_odds || 2.0;
+            const drawOdds = match.draw_odds || 2.1;
+            const awayOdds = match.away_odds || 2.0;
+            const overOdds = match.over_2_5_odds || 1.8;
+            const underOdds = match.under_2_5_odds || 1.9;
+            
+            card.innerHTML = `
+                <div class="betting-match-teams">${homeTeam} vs ${awayTeam}</div>
+                <div class="betting-odds-container">
+                    <div class="odds-group">
+                        <div class="odds-group-title">Match Result</div>
+                        <div class="odds-row">
+                            <div class="odds-option">
+                                <span class="odds-label">Home</span>
+                                <span class="odds-value">${homeOdds}</span>
+                            </div>
+                            <div class="odds-option">
+                                <span class="odds-label">Draw</span>
+                                <span class="odds-value">${drawOdds}</span>
+                            </div>
+                            <div class="odds-option">
+                                <span class="odds-label">Away</span>
+                                <span class="odds-value">${awayOdds}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="odds-group">
+                        <div class="odds-group-title">Total Goals</div>
+                        <div class="odds-row">
+                            <div class="odds-option">
+                                <span class="odds-label">Over 2.5</span>
+                                <span class="odds-value">${overOdds}</span>
+                            </div>
+                            <div class="odds-option">
+                                <span class="odds-label">Under 2.5</span>
+                                <span class="odds-value">${underOdds}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function createLiveMatchRow(match) {
+            const row = document.createElement('div');
+            row.className = 'live-match-row';
+            row.dataset.matchId = match.id;
+            
+            const homeTeam = match.home_team?.name || match.home_team || 'Team A';
+            const awayTeam = match.away_team?.name || match.away_team || 'Team B';
+            
+            const recentEvents = (match.events || []).slice(-3);
+            const eventsHtml = recentEvents.length > 0 
+                ? recentEvents.map(event => {
+                    const icon = eventIcons[event.event_type] || '⚡';
+                    return `<span class="event-icon" title="${event.description}">${icon}</span>`;
+                }).join('')
+                : '<span class="no-events">—</span>';
+            
+            let statusClass = '';
+            let statusText = '';
+            switch(match.status) {
+                case 'live':
+                    statusClass = 'status-live';
+                    statusText = 'LIVE';
+                    break;
+                case 'finished':
+                    statusClass = 'status-finished';
+                    statusText = 'FINISHED';
+                    break;
+                default:
+                    statusText = match.status.toUpperCase();
+            }
+            
+            row.innerHTML = `
+                <div class="home-team-cell">${homeTeam}</div>
+                <div class="away-team-cell">${awayTeam}</div>
+                <div class="match-score-cell">${match.home_score || 0}-${match.away_score || 0}</div>
+                <div class="match-events-cell">${eventsHtml}</div>
+                <div class="match-status-cell ${statusClass}">${statusText}</div>
+            `;
+            
+            return row;
+        }
+
+        function createBettingMatchRow(match) {
+            const row = document.createElement('div');
+            row.className = 'betting-match-row';
+            row.dataset.matchId = match.id;
+            
+            const homeTeam = match.home_team?.name || match.home_team || 'Team A';
+            const awayTeam = match.away_team?.name || match.away_team || 'Team B';
+            
+            // Get betting odds
+            const homeOdds = match.home_odds || 2.0;
+            const drawOdds = match.draw_odds || 2.1;
+            const awayOdds = match.away_odds || 2.0;
+            const overOdds = match.over_2_5_odds || 1.8;
+            const underOdds = match.under_2_5_odds || 1.9;
+            
+            row.innerHTML = `
+                <div class="home-team-cell">${homeTeam}</div>
+                <div class="away-team-cell">${awayTeam}</div>
+                <div class="betting-odds-display-full">
+                    <div class="odds-group">
+                        <div class="odds-group-title">Match Result</div>
+                        <div class="odds-row">
+                            <div class="odds-option">
+                                <span class="odds-label">Home</span>
+                                <span class="odds-value">${homeOdds}</span>
+                            </div>
+                            <div class="odds-option">
+                                <span class="odds-label">Draw</span>
+                                <span class="odds-value">${drawOdds}</span>
+                            </div>
+                            <div class="odds-option">
+                                <span class="odds-label">Away</span>
+                                <span class="odds-value">${awayOdds}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="odds-group">
+                        <div class="odds-group-title">Total Goals</div>
+                        <div class="odds-row">
+                            <div class="odds-option">
+                                <span class="odds-label">Over 2.5</span>
+                                <span class="odds-value">${overOdds}</span>
+                            </div>
+                            <div class="odds-option">
+                                <span class="odds-label">Under 2.5</span>
+                                <span class="odds-value">${underOdds}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return row;
+        }
+
+        function createOriginalMatchRow(match) {
+            const row = document.createElement('div');
+            row.className = `match-row ${match.status}`;
+            row.dataset.matchId = match.id;
+            
+            const homeTeam = match.home_team?.name || match.home_team || 'Team A';
+            const awayTeam = match.away_team?.name || match.away_team || 'Team B';
+            
+            // Get recent events (last 3)
+            const recentEvents = (match.events || []).slice(-3);
+            const eventsHtml = recentEvents.length > 0 
+                ? recentEvents.map(event => {
+                    const icon = eventIcons[event.event_type] || '⚡';
+                    return `<span class="event-icon" title="${event.description}">${icon}</span>`;
+                }).join('')
+                : '<span class="no-events">—</span>';
+            
+            let statusClass = '';
+            let statusText = '';
+            switch(match.status) {
+                case 'betting_open':
+                    statusClass = 'status-betting-open';
+                    statusText = 'BETS OPEN';
+                    break;
+                case 'betting_locked':
+                    statusClass = 'status-betting-locked';
+                    statusText = 'BETS LOCKED';
+                    break;
+                case 'live':
+                    statusClass = 'status-live';
+                    statusText = 'LIVE';
+                    break;
+                case 'finished':
+                    statusClass = 'status-finished';
+                    statusText = 'FINISHED';
+                    break;
+                default:
+                    statusText = match.status.toUpperCase();
+            }
+            
+            row.innerHTML = `
+                <div class="match-teams-cell">${homeTeam} vs ${awayTeam}</div>
+                <div class="match-score-cell">${match.home_score || 0}-${match.away_score || 0}</div>
+                <div class="match-events-cell">${eventsHtml}</div>
+                <div class="match-status-cell ${statusClass}">${statusText}</div>
+            `;
+            
+            return row;
+        }
+
+        function createMatchRow(match) {
+            const row = document.createElement('div');
+            row.className = `match-row ${match.status}`;
+            row.dataset.matchId = match.id;
+            
+            const homeTeam = match.home_team?.name || match.home_team || 'Team A';
+            const awayTeam = match.away_team?.name || match.away_team || 'Team B';
+            
+            let statusClass = '';
+            let statusText = '';
+            switch(match.status) {
+                case 'betting_open':
+                    statusClass = 'status-betting-open';
+                    statusText = 'BETS OPEN';
+                    break;
+                case 'betting_locked':
+                    statusClass = 'status-betting-locked';
+                    statusText = 'BETS LOCKED';
+                    break;
+                case 'live':
+                    statusClass = 'status-live';
+                    statusText = 'LIVE';
+                    break;
+                case 'finished':
+                    statusClass = 'status-finished';
+                    statusText = 'FINISHED';
+                    break;
+                default:
+                    statusText = match.status.toUpperCase();
+            }
+            
+            // Always show events and scores, but conditionally show odds
+            const recentEvents = (match.events || []).slice(-3);
+            const eventsHtml = recentEvents.length > 0 
+                ? recentEvents.map(event => {
+                    const icon = eventIcons[event.event_type] || '⚡';
+                    return `<span class="event-icon" title="${event.description}">${icon}</span>`;
+                }).join('')
+                : '<span class="no-events">—</span>';
+            
+            if (match.status === 'live' || match.status === 'finished') {
+                // For live/finished matches: hide odds, show score and events
+                row.innerHTML = `
+                    <div class="match-teams-cell">${homeTeam} vs ${awayTeam}</div>
+                    <div class="match-score-cell-wide">${match.home_score || 0}-${match.away_score || 0}</div>
+                    <div class="match-events-cell">${eventsHtml}</div> `;
+                    if (match.status != 'finished' && match.status != 'live') {
+                        row.innerHTML += `<div class="match-status-cell ${statusClass}">${statusText}</div>`;
+                    }
+               
+                row.classList.add('live-match-row');
+                
+            } else {
+                // For betting matches: ONLY show odds, hide score/events/status
+                const homeOdds = match.home_odds || 2.0;
+                const drawOdds = match.draw_odds || 2.1;
+                const awayOdds = match.away_odds || 2.0;
+                const overOdds = match.over_2_5_odds || 1.8;
+                const underOdds = match.under_2_5_odds || 1.9;
+                
+                row.innerHTML = `
+                    <div class="match-teams-cell">${homeTeam} vs ${awayTeam}</div>
+                    <div class="betting-odds-display-full">
+                        <div class="odds-group">
+                            <div class="odds-group-title">Match Result</div>
+                            <div class="odds-row">
+                                <div class="odds-option">
+                                    <span class="odds-label">Home</span>
+                                    <span class="odds-value">${homeOdds}</span>
+                                </div>
+                                <div class="odds-option">
+                                    <span class="odds-label">Draw</span>
+                                    <span class="odds-value">${drawOdds}</span>
+                                </div>
+                                <div class="odds-option">
+                                    <span class="odds-label">Away</span>
+                                    <span class="odds-value">${awayOdds}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="odds-group">
+                            <div class="odds-group-title">Total Goals</div>
+                            <div class="odds-row">
+                                <div class="odds-option">
+                                    <span class="odds-label">Over 2.5</span>
+                                    <span class="odds-value">${overOdds}</span>
+                                </div>
+                                <div class="odds-option">
+                                    <span class="odds-label">Under 2.5</span>
+                                    <span class="odds-value">${underOdds}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                row.classList.add('betting-match-row');
+            }
+            
+            return row;
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (connected) {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'status connected';
+            } else {
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'status disconnected';
+            }
+        }
+
+        function startLiveMatchRotation() {
+            stopLiveMatchRotation();
+            
+            if (availableLiveMatches.length === 0) {
+                showNoLiveMatch();
+                return;
+            }
+            
+            showCurrentLiveMatch();
+            
+            if (availableLiveMatches.length > 1) {
+                matchRotationInterval = setInterval(() => {
+                    currentMatchIndex = (currentMatchIndex + 1) % availableLiveMatches.length;
+                    showCurrentLiveMatch();
+                }, 10000); // 10 seconds
+                console.log(`🔄 Started live match rotation (${availableLiveMatches.length} matches)`);
+            }
+        }
+
+        function stopLiveMatchRotation() {
+            if (matchRotationInterval) {
+                clearInterval(matchRotationInterval);
+                matchRotationInterval = null;
+            }
+        }
+
+        function showCurrentLiveMatch() {
+            if (availableLiveMatches.length === 0) {
+                showNoLiveMatch();
+                return;
+            }
+            
+            const match = availableLiveMatches[currentMatchIndex];
+            
+            document.getElementById('matchTeams').textContent = 
+                `${match.home_team.name} vs ${match.away_team.name}`;
+            document.getElementById('matchScoreLarge').textContent = 
+                `${match.home_score || 0} - ${match.away_score || 0}`;
+            document.getElementById('matchTimeLarge').textContent = 
+                `${Math.floor(match.current_minute || 0)}'`;
+            
+            // Update events ticker
+            const ticker = document.getElementById('matchEventsTicker');
+            const recentEvents = (match.events || []).slice(-5);
+            
+            if (recentEvents.length > 0) {
+                ticker.innerHTML = recentEvents.map(event => {
+                    const icon = eventIcons[event.event_type] || '⚡';
+                    return `<span class="event-mini" title="${event.description}">${icon}</span>`;
+                }).join('');
+            } else {
+                ticker.innerHTML = '<span class="no-events">No events yet</span>';
+            }
+        }
+
+        function showNoLiveMatch() {
+            document.getElementById('matchTeams').textContent = 'No Live Match';
+            document.getElementById('matchScoreLarge').textContent = '- - -';
+            document.getElementById('matchTimeLarge').textContent = '--';
+            document.getElementById('matchEventsTicker').innerHTML = 
+                '<span class="no-events">Waiting for matches to start...</span>';
+        }
+
+        function handleMatchEvent(data) {
+            const matchId = data.match_id;
+            const event = data.event_data.event;
+            const match = data.event_data.match;
+            
+            // Update the match in available live matches
+            const matchIndex = availableLiveMatches.findIndex(m => m.match_id === matchId);
+            if (matchIndex !== -1) {
+                availableLiveMatches[matchIndex].home_score = match.home_score;
+                availableLiveMatches[matchIndex].away_score = match.away_score;
+                availableLiveMatches[matchIndex].current_minute = match.current_minute;
+                
+                // Add event to match
+                if (!availableLiveMatches[matchIndex].events) {
+                    availableLiveMatches[matchIndex].events = [];
+                }
+                availableLiveMatches[matchIndex].events.push(event);
+                
+                // If this is the currently displayed match, update it
+                if (matchIndex === currentMatchIndex) {
+                    showCurrentLiveMatch();
+                }
+            }
+            
+            // Update the match row in the table
+            updateMatchRowInTable(matchId, match, event);
+        }
+
+        function handleMatchStart(data) {
+            const matchId = data.match_id;
+            const match = data.event_data.match;
+            
+            console.log('🏁 DEBUG - Match started:', match.home_team, 'vs', match.away_team);
+            
+            // Add to live matches if not already there
+            const liveMatchData = {
+                id: matchId,
+                match_id: matchId,
+                home_team: { name: match.home_team },
+                away_team: { name: match.away_team },
+                home_score: match.home_score || 0,
+                away_score: match.away_score || 0,
+                current_minute: match.current_minute || 0,
+                status: 'live',
+                events: []
+            };
+            
+            const existingIndex = availableLiveMatches.findIndex(m => m.match_id === matchId);
+            if (existingIndex === -1) {
+                availableLiveMatches.push(liveMatchData);
+                if (availableLiveMatches.length === 1) {
+                    startLiveMatchRotation();
+                }
+            }
+            
+            // Update match status in current playoff
+            if (currentPlayoff) {
+                const playoffMatch = currentPlayoff.matches.find(m => m.id === matchId);
+                if (playoffMatch) {
+                    playoffMatch.status = 'live';
+                    console.log('🔄 DEBUG - Updated match status to live in playoff data');
+                }
+                
+                // Update call-to-action since match status changed
+                updateBettingCallToAction(currentPlayoff);
+            }
+            
+            // Update match row status
+            updateMatchRowStatus(matchId, 'live');
+        }
+
+        function handleMatchEnd(data) {
+            const matchId = data.match_id;
+            
+            // Remove from live matches
+            const matchIndex = availableLiveMatches.findIndex(m => m.match_id === matchId);
+            if (matchIndex !== -1) {
+                availableLiveMatches.splice(matchIndex, 1);
+                
+                if (currentMatchIndex >= availableLiveMatches.length) {
+                    currentMatchIndex = 0;
+                }
+                
+                if (availableLiveMatches.length > 0) {
+                    showCurrentLiveMatch();
+                } else {
+                    stopLiveMatchRotation();
+                    showNoLiveMatch();
+                }
+            }
+            
+            // Update match row status
+            updateMatchRowStatus(matchId, 'finished');
+        }
+
+        function handleBettingOpened(data) {
+            console.log('🎯 DEBUG - Betting opened for match:', data.match_id);
+            
+            // Update match status in current playoff
+            if (currentPlayoff) {
+                const playoffMatch = currentPlayoff.matches.find(m => m.id === data.match_id);
+                if (playoffMatch) {
+                    playoffMatch.status = 'betting_open';
+                    console.log('🔄 DEBUG - Updated match status to betting_open in playoff data');
+                }
+                
+                // Update call-to-action since betting is now available
+                updateBettingCallToAction(currentPlayoff);
+            }
+            
+            updateMatchRowStatus(data.match_id, 'betting_open');
+        }
+
+        function handleBettingLocked(data) {
+            console.log('🔒 DEBUG - Betting locked for match:', data.match_id);
+            
+            // Update match status in current playoff
+            if (currentPlayoff) {
+                const playoffMatch = currentPlayoff.matches.find(m => m.id === data.match_id);
+                if (playoffMatch) {
+                    playoffMatch.status = 'betting_locked';
+                    console.log('🔄 DEBUG - Updated match status to betting_locked in playoff data');
+                }
+                
+                // Update call-to-action since betting status changed
+                updateBettingCallToAction(currentPlayoff);
+            }
+            
+            updateMatchRowStatus(data.match_id, 'betting_locked');
+        }
+
+        function updateMatchRowInTable(matchId, matchData, event) {
+            const matchRow = document.querySelector(`[data-match-id="${matchId}"]`);
+            if (matchRow) {
+                // Update score
+                const scoreCell = matchRow.querySelector('.match-score-cell');
+                if (scoreCell) {
+                    scoreCell.textContent = `${matchData.home_score || 0}-${matchData.away_score || 0}`;
+                }
+                
+                // Update events
+                const eventsCell = matchRow.querySelector('.match-events-cell');
+                if (eventsCell && event) {
+                    const icon = eventIcons[event.event_type] || '⚡';
+                    const eventIcon = document.createElement('span');
+                    eventIcon.className = 'event-icon';
+                    eventIcon.textContent = icon;
+                    eventIcon.title = event.description;
+                    
+                    // Remove no-events placeholder
+                    const noEvents = eventsCell.querySelector('.no-events');
+                    if (noEvents) noEvents.remove();
+                    
+                    // Add new event (keep only last 3)
+                    eventsCell.insertBefore(eventIcon, eventsCell.firstChild);
+                    while (eventsCell.children.length > 3) {
+                        eventsCell.removeChild(eventsCell.lastChild);
+                    }
+                }
+            }
+        }
+
+        function updateMatchRowStatus(matchId, status) {
+            const matchRow = document.querySelector(`[data-match-id="${matchId}"]`);
+            if (matchRow) {
+                const statusCell = matchRow.querySelector('.match-status-cell');
+                if (statusCell) {
+                    statusCell.className = `match-status-cell status-${status.replace('_', '-')}`;
+                    
+                    let statusText = '';
+                    switch(status) {
+                        case 'betting_open':
+                            statusText = 'OPEN';
+                            break;
+                        case 'betting_locked':
+                            statusText = 'LOCKED';
+                            break;
+                        case 'live':
+                            statusText = 'LIVE';
+                            matchRow.className = 'match-row live';
+                            break;
+                        case 'finished':
+                            statusText = 'FINISHED';
+                            break;
+                        default:
+                            statusText = status.toUpperCase();
+                    }
+                    statusCell.textContent = statusText;
+                }
+            }
+        }
+
+        function updateDebugInfo(label, value) {
+            const debugEl = document.getElementById('debugInfo');
+            if (!window.debugLines) window.debugLines = [];
+            
+            window.debugLines.push(`${label}: ${value}`);
+            if (window.debugLines.length > 8) window.debugLines.shift();
+            
+            debugEl.innerHTML = window.debugLines.join('<br>');
+        }
+
+        function handleMatchEvent(data) {
+            console.log('🔍 DEBUG handleMatchEvent - Input data:', data);
+            
+            const matchId = data.match_id;
+            const event = data.event_data?.event;
+            const match = data.event_data?.match;
+            
+            if (!event || !match) {
+                console.error('❌ DEBUG - Missing event or match data:', { event, match });
+                return;
+            }
+            
+            console.log('🔍 DEBUG handleMatchEvent - Processing:', event.event_type, 'for', match.home_team, 'vs', match.away_team);
+            
+            // Update the match in available live matches
+            const matchIndex = availableLiveMatches.findIndex(m => m.match_id === matchId);
+            if (matchIndex !== -1) {
+                availableLiveMatches[matchIndex].home_score = match.home_score;
+                availableLiveMatches[matchIndex].away_score = match.away_score;
+                availableLiveMatches[matchIndex].current_minute = match.current_minute;
+                
+                // Add event to match
+                if (!availableLiveMatches[matchIndex].events) {
+                    availableLiveMatches[matchIndex].events = [];
+                }
+                availableLiveMatches[matchIndex].events.push(event);
+                
+                // If this is the currently displayed match, update it
+                if (matchIndex === currentMatchIndex) {
+                    console.log('🔄 DEBUG - Updating currently displayed live match');
+                    showCurrentLiveMatch();
+                }
+            }
+            
+            // Update the match row in the table
+            updateMatchRowInTable(matchId, match, event);
+            
+            // Update current playoff display if needed
+            if (currentPlayoff) {
+                const playoffMatch = currentPlayoff.matches.find(m => m.id === matchId);
+                if (playoffMatch) {
+                    playoffMatch.home_score = match.home_score;
+                    playoffMatch.away_score = match.away_score;
+                    playoffMatch.current_minute = match.current_minute;
+                    if (!playoffMatch.events) playoffMatch.events = [];
+                    playoffMatch.events.push(event);
+                }
+            }
+            
+            // Log performance
+            const latency = Date.now() - new Date(data.timestamp).getTime();
+            console.log(`⚡ Event delivered in ${latency}ms: ${event.event_type} - ${event.description}`);
+        }
+
+        function handlePlayoffUpdated(data) {
+            console.log('📈 DEBUG - Playoff updated:', data);
+            // Refresh the current playoff display
+            if (currentPlayoff && currentPlayoff.id === data.playoff_id) {
+                // Update playoff stats without full reload
+                const playoffData = data.event_data;
+                if (playoffData) {
+                    currentPlayoff.total_goals = playoffData.total_goals;
+                    currentPlayoff.total_events = playoffData.total_events;
+                }
+            }
+        }
+
+        function handlePlayoffBettingLocked(data) {
+            console.log('🔐 DEBUG - Playoff betting locked:', data);
+            updateDebugInfo('Playoff Status', 'Betting Locked');
+            
+            // Update current playoff status and call-to-action
+            if (currentPlayoff && currentPlayoff.id === data.playoff_id) {
+                currentPlayoff.status = 'betting_locked';
+                updateBettingCallToAction(currentPlayoff);
+            }
+        }
+
+        function handlePlayoffFinished(data) {
+            console.log('🏆 DEBUG - Playoff finished:', data);
+            updateDebugInfo('Playoff Status', 'Finished');
+            
+            // Update current playoff status and call-to-action
+            if (currentPlayoff && currentPlayoff.id === data.playoff_id) {
+                currentPlayoff.status = 'finished';
+                updateBettingCallToAction(currentPlayoff);
+                
+                // Update all match rows to show FINISHED status
+                currentPlayoff.matches.forEach(match => {
+                    updateMatchRowStatus(match.id, 'finished');
+                });
+            }
+            
+            // Keep the finished playoff visible but update call-to-action
+            setTimeout(() => {
+                // Clear live matches but keep the playoff results visible
+                availableLiveMatches = [];
+                stopLiveMatchRotation();
+                showNoLiveMatch();
+                
+                // Update call-to-action to show preparing status
+                const callToActionEl = document.querySelector('.betting-call-to-action h1');
+                if (callToActionEl) {
+                    callToActionEl.textContent = 'PREPARING NEW MATCHES';
+                    callToActionEl.parentElement.style.background = 'rgba(107, 114, 128, 0.9)';
+                    callToActionEl.parentElement.style.animation = 'none';
+                }
+                
+                // Add a subtitle showing that results are from previous playoff
+                const playoffNameEl = document.getElementById('playoffName');
+                if (playoffNameEl && currentPlayoff) {
+                    playoffNameEl.innerHTML = `${currentPlayoff.name} <span style="font-size: 0.8em; color: #94a3b8;">(Previous Results)</span>`;
+                }
+                
+                // Set up timeout to request new playoff if none comes within 30 seconds
+                setTimeout(() => {
+                    if (!currentPlayoff || currentPlayoff.status === 'finished') {
+                        console.log('⏰ DEBUG - No new playoff after 30 seconds, requesting refresh...');
+                        updateDebugInfo('Action', 'Requesting new playoff...');
+                        
+                        // Request a fresh update from the server
+                        if (socket && socket.connected && currentClient) {
+                            socket.emit('join_client', { client_id: currentClient });
+                        }
+                    }
+                }, 30000); // 30 seconds timeout
+                
+            }, 3000); // Show finished status for 3 seconds
+        }
+
+        function testConnection() {
+            console.log('🧪 Testing connection to server...');
+            updateDebugInfo('Test', 'Testing connection...');
+            
+            fetch('http://localhost:5000')
+                .then(response => {
+                    console.log('✅ Server is reachable, status:', response.status);
+                    updateDebugInfo('Server Test', `Reachable (${response.status})`);
+                })
+                .catch(error => {
+                    console.error('❌ Server test failed:', error);
+                    updateDebugInfo('Server Test', `Failed: ${error.message}`);
+                });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDebugInfo('Status', 'Ready to connect');
+            console.log('🚀 Sports Betting UI initialized');
+            console.log('🔧 Debug: Socket.IO available:', typeof io !== 'undefined');
+        });
+    </script>
+</body>
+</html>
