@@ -60,6 +60,9 @@ class SimulationEngine:
         self.goal_frequency_window = 5.0  # 5-second window
         self.recent_goals = {}  # Track recent goals per match
         
+        # Unique odds tracking to ensure no match has similar odds
+        self.used_odds_combinations = set()
+        
         # Event observers for real-time notifications
         self.observers: Dict[str, List] = {}
         
@@ -255,39 +258,59 @@ class SimulationEngine:
         return match
     
     def _generate_match_odds(self, home_team: Team, away_team: Team) -> Tuple[float, float, float, float, float]:
-        """Generate realistic betting odds for a match"""
-        # Create some variation based on team names (simplified odds generation)
+        """Generate UNIQUE betting odds for each match - no duplicates allowed"""
         import hashlib
+        import time
         
-        # Use team names to create consistent but varied odds
-        team_hash = hashlib.md5(f"{home_team.name}{away_team.name}".encode()).hexdigest()
-        seed_value = int(team_hash[:8], 16) % 1000
+        max_attempts = 100  # Prevent infinite loops
+        attempts = 0
         
-        # Generate odds with some randomness but realistic ranges
-        np.random.seed(seed_value)
-        
-        # Generate odds in range 1.3 to 2.5 as requested
-        home_odds = round(1.3 + np.random.random() * 1.2, 1)  # 1.3 to 2.5
-        away_odds = round(1.3 + np.random.random() * 1.2, 1)  # 1.3 to 2.5
-        draw_odds = round(1.3 + np.random.random() * 1.2, 1)  # 1.3 to 2.5
-        
-        # Generate Over/Under 2.5 goals odds (typically closer odds)
-        over_2_5_odds = round(1.3 + np.random.random() * 1.2, 1)  # 1.3 to 2.5
-        under_2_5_odds = round(1.3 + np.random.random() * 1.2, 1)  # 1.3 to 2.5
-        
-        # Ensure they're not exactly the same (add small variation)
-        if home_odds == away_odds:
-            away_odds = round(away_odds + 0.1, 1)
-        if over_2_5_odds == under_2_5_odds:
-            under_2_5_odds = round(under_2_5_odds + 0.1, 1)
+        while attempts < max_attempts:
+            attempts += 1
             
-        # Ensure bounds
-        home_odds = max(1.3, min(2.5, home_odds))
-        away_odds = max(1.3, min(2.5, away_odds))
-        draw_odds = max(1.3, min(2.5, draw_odds))
-        over_2_5_odds = max(1.3, min(2.5, over_2_5_odds))
-        under_2_5_odds = max(1.3, min(2.5, under_2_5_odds))
+            # Use team names + current time + attempt number for unique seed
+            unique_string = f"{home_team.name}{away_team.name}{time.time()}{attempts}"
+            team_hash = hashlib.md5(unique_string.encode()).hexdigest()
+            seed_value = int(team_hash[:8], 16) % 10000
+            
+            # Generate odds with high precision for uniqueness
+            np.random.seed(seed_value)
+            
+            # Generate odds with more decimal places for uniqueness (1.3 to 2.5 range)
+            home_odds = round(1.3 + np.random.random() * 1.2, 2)      # 2 decimal places
+            away_odds = round(1.3 + np.random.random() * 1.2, 2)      # 2 decimal places  
+            draw_odds = round(1.3 + np.random.random() * 1.2, 2)      # 2 decimal places
+            over_2_5_odds = round(1.3 + np.random.random() * 1.2, 2)  # 2 decimal places
+            under_2_5_odds = round(1.3 + np.random.random() * 1.2, 2) # 2 decimal places
+            
+            # Ensure internal uniqueness within this match
+            odds_set = {home_odds, away_odds, draw_odds, over_2_5_odds, under_2_5_odds}
+            if len(odds_set) < 5:  # If any duplicates within this match
+                continue  # Try again
+            
+            # Create combination tuple for global uniqueness check
+            odds_combination = (home_odds, away_odds, draw_odds, over_2_5_odds, under_2_5_odds)
+            
+            # Check if this combination has been used before
+            if odds_combination not in self.used_odds_combinations:
+                # This is a unique combination! 
+                self.used_odds_combinations.add(odds_combination)
+                
+                logger.info(f"Generated UNIQUE odds (attempt {attempts}): H:{home_odds} A:{away_odds} D:{draw_odds} O:{over_2_5_odds} U:{under_2_5_odds}")
+                return home_odds, away_odds, draw_odds, over_2_5_odds, under_2_5_odds
         
+        # Fallback: If we can't find unique odds after max attempts, generate with timestamp
+        fallback_time = int(time.time() * 1000) % 1000  # Use milliseconds for uniqueness
+        home_odds = round(1.3 + (fallback_time % 120) / 100, 2)  # 1.3 to 2.5
+        away_odds = round(1.3 + ((fallback_time + 13) % 120) / 100, 2)
+        draw_odds = round(1.3 + ((fallback_time + 27) % 120) / 100, 2)
+        over_2_5_odds = round(1.3 + ((fallback_time + 41) % 120) / 100, 2)
+        under_2_5_odds = round(1.3 + ((fallback_time + 59) % 120) / 100, 2)
+        
+        odds_combination = (home_odds, away_odds, draw_odds, over_2_5_odds, under_2_5_odds)
+        self.used_odds_combinations.add(odds_combination)
+        
+        logger.info(f"Generated FALLBACK unique odds: H:{home_odds} A:{away_odds} D:{draw_odds} O:{over_2_5_odds} U:{under_2_5_odds}")
         return home_odds, away_odds, draw_odds, over_2_5_odds, under_2_5_odds
     
     def start_match(self, match_id: str) -> bool:
